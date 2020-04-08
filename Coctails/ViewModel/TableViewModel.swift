@@ -23,16 +23,15 @@ class TableViewModel {
     }
     var selectedCategories: [Category] = [] {
         didSet {
-            selectedCocktails = []
+            selectedCocktails = [:]
             for category in selectedCategories {
-                guard let index = categories.firstIndex(where: { $0.category == category.category }) else { return }
-                selectedCocktails.append(cocktails[index])
+                selectedCocktails[category.category] = cocktails[category.category]
             }
         }
     }
-    var selectedCocktails: [[Cocktail]] = []
+    var selectedCocktails: [String:[Cocktail]] = [:]
     
-    private var cocktails: [[Cocktail]] = []
+    private var cocktails: [String:[Cocktail]] = [:]
 
     var isLoading: Bool = false {
         didSet {
@@ -89,7 +88,7 @@ class TableViewModel {
             switch result {
                 
             case .success(let cocktails):
-                self?.cocktails.append(cocktails)
+                self?.cocktails[category] = cocktails
                 
             case .failure(let error):
                 self?.showError?(error)
@@ -106,20 +105,30 @@ class TableViewModel {
     }
     
     func numberOfRows(in section: Int) -> Int {
-        guard !cocktails.isEmpty else { return 0 }
-        guard !selectedCocktails.isEmpty else { return cocktails[section].count }
-        return selectedCocktails[section].count
+        if selectedCocktails.isEmpty {
+            guard !cocktails.isEmpty else { return 0 }
+            let category = categories[section].category
+            guard let categoryCocktails = cocktails[category] else { return 0 }
+            return categoryCocktails.count
+        } else {
+            let category = selectedCategories[section].category
+            guard let selectedCategoryCocktails = selectedCocktails[category] else { return 0 }
+            return selectedCategoryCocktails.count
+        }
     }
     
     //MARK: TableViewCell UI
     
     func cellViewModel(for indexPath: IndexPath) -> TableViewCellViewModel? {
-        
         if selectedCocktails.isEmpty {
-            let cocktail = cocktails[indexPath.section][indexPath.row]
+            let category = categories[indexPath.section].category
+            guard !cocktails.isEmpty, let categoryCocktails = cocktails[category] else { return nil }
+            let cocktail = categoryCocktails[indexPath.row]
             return TableViewCellViewModel(cocktail: cocktail)
         } else {
-            let cocktail = selectedCocktails[indexPath.section][indexPath.row]
+            let category = selectedCategories[indexPath.section].category
+            guard let selectedCategoryCocktails = selectedCocktails[category] else { return nil }
+            let cocktail = selectedCategoryCocktails[indexPath.row]
             return TableViewCellViewModel(cocktail: cocktail)
         }
     }
