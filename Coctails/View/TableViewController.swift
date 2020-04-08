@@ -156,31 +156,4 @@ class TableViewController: UITableViewController {
         tableViewCell.selectionStyle = .none
         return tableViewCell
     }
-    
-//    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
-//        if sectionIndex < tableViewModel.categories.count {
-//            let rowHeight = tableView.rowHeight
-//            let numberOfRows = tableView.numberOfRows(inSection: sectionIndex)
-//
-//            let offsetY = scrollView.contentOffset.y
-//            let contentHeight = rowHeight * CGFloat(numberOfRows)
-//
-//            if offsetY > contentHeight - (2 * scrollView.frame.height) {
-//
-//                if !fetchingMore {
-//                    fetchingMore = true
-//
-//                    DispatchQueue.global().async { [weak self] in
-//                        self?.tableViewModel.scrollBeginFetch(from: self?.sectionIndex ?? 0)
-//                    }
-//
-//                    DispatchQueue.main.async { [weak self] in
-//                        self?.tableView.reloadData()
-//                        self?.fetchingMore = false
-//                    }
-//                    sectionIndex += 1
-//                }
-//            }
-//        }
-//    }
 }
