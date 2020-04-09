@@ -16,8 +16,6 @@ class TableViewController: UITableViewController {
     
     private let cellID = "cellID"
     private let filterButton = UIButton(type: .system)
-    private var fetchingMore = false
-    var sectionIndex = 0
     
     private let tableViewModel = TableViewModel()
     var filterViewModel: FilterViewModel?
