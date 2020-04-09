@@ -13,7 +13,7 @@ import Moya
 
 enum APIError: Error {
     
-    case badResponce, jsonDecoder, imageDownload, imageConvert
+    case badResponce, jsonDecoder
 }
 
 class CocktailAPI {

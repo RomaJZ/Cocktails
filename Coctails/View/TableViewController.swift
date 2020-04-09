@@ -35,8 +35,11 @@ class TableViewController: UITableViewController {
         super.viewWillAppear(true)
         
         updateTableView()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.tableView.setContentOffset(.zero, animated: false)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            UIView.animate(withDuration: 1) {
+                self?.scrollToTop()
+            }
         }
     }
     
@@ -67,6 +70,17 @@ class TableViewController: UITableViewController {
         }
         tableViewModel.selectedCategories = selectedCategories
         tableView.reloadData()
+    }
+    
+    //MARK: Scroll to top
+    
+    private func scrollToTop() {
+        guard tableView.numberOfSections != 0 else { return }
+        let topRow = IndexPath(row: 0, section: 0)
+                               
+        self.tableView.scrollToRow(at: topRow,
+                                   at: .top,
+                                   animated: true)
     }
     
     //MARK: Configure TableView
