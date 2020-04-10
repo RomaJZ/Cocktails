@@ -38,9 +38,9 @@ class TableViewController: UITableViewController {
         updateTableView()
         
         if filterDidChanged {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 UIView.animate(withDuration: 1) {
-                    self?.scrollToTop()
+                    self.scrollToTop()
                 }
             }
             filterDidChanged = false
