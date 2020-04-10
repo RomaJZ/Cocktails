@@ -99,6 +99,7 @@ class FilterViewController: UIViewController {
         
         guard let tableViewController = navigationController?.viewControllers.first as? TableViewController else { return }
         
+        tableViewController.filterDidChanged = applyFilterButton.isEnabled
         tableViewController.selectedCategories = filterViewModel.selectedCategories
         tableViewController.filterViewModel = filterViewModel
         navigationController?.popViewController(animated: true)

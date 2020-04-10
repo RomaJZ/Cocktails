@@ -16,18 +16,26 @@ class TableViewModel {
     
     private(set) var categories: [Category] = [] {
         didSet {
-            for category in categories {
-                loadCocktails(from: category.category)
-            }
+                let category = categories[0].category
+                group.enter()
+                loadCocktails(from: category) { [weak self] cocktails in
+                    self?.cocktails[category] = cocktails
+                }
         }
     }
     var selectedCategories: [Category] = [] {
         didSet {
             selectedCocktails = [:]
-            for category in selectedCategories {
-                selectedCocktails[category.category] = cocktails[category.category]
-            }
+            scrollBeginFetch(from: 0)
         }
+    }
+    var sortedSelectedCategories: [Category] {
+        
+        var indecies: [Int] = []
+        for category in selectedCategories {
+            indecies.append(categories.firstIndex(of: category)!)
+        }
+        return zip(selectedCategories, indecies).sorted(by: { $0.1 < $1.1 }).map( {$0.0} )
     }
     var selectedCocktails: [String:[Cocktail]] = [:]
     
@@ -38,7 +46,6 @@ class TableViewModel {
             showLoading?()
         }
     }
-
     var showLoading: (() -> Void)?
     var reloadData: (() -> Void)?
     var showError: ((Error) -> Void)?
@@ -78,17 +85,16 @@ class TableViewModel {
     
     //MARK: Loading Cocktails
     
-    private func loadCocktails(from category: String) {
+    private func loadCocktails(from category: String, completion: @escaping ([Cocktail]) -> Void) {
         
         guard !categories.isEmpty else { return }
-        
-        group.enter()
+
         fetcher.fetchCocktails(category: category) { [weak self] result in
             
             switch result {
                 
             case .success(let cocktails):
-                self?.cocktails[category] = cocktails
+                completion(cocktails)
                 
             case .failure(let error):
                 self?.showError?(error)
@@ -111,9 +117,40 @@ class TableViewModel {
             guard let categoryCocktails = cocktails[category] else { return 0 }
             return categoryCocktails.count
         } else {
-            let category = selectedCategories[section].category
+            let category = sortedSelectedCategories[section].category
             guard let selectedCategoryCocktails = selectedCocktails[category] else { return 0 }
             return selectedCategoryCocktails.count
+        }
+    }
+    
+    func scrollBeginFetch(from section: Int) {
+        
+        DispatchQueue.global(qos: .background).async(group: group) {
+            guard !self.categories.isEmpty else { return }
+            var category: String
+            if self.selectedCategories.isEmpty == true {
+                category = self.categories[section].category
+                if self.cocktails.contains(where: { $0.key == category }) == false {
+                    self.group.enter()
+                    self.loadCocktails(from: category) { [weak self] cocktails in
+                        self?.cocktails[category] = cocktails
+                    }
+                }
+            } else {
+                category = self.sortedSelectedCategories[section].category
+                if self.cocktails.contains(where: { $0.key == category }) == false {
+                    self.group.enter()
+                    self.loadCocktails(from: category) { [weak self] cocktails in
+                        self?.selectedCocktails[category] = cocktails
+                    }
+                } else {
+                    self.selectedCocktails[category] = self.cocktails[category]
+                }
+            }
+        }
+        group.notify(queue: .main) {
+            self.isLoading = false
+            self.reloadData?()
         }
     }
     
@@ -126,7 +163,7 @@ class TableViewModel {
             let cocktail = categoryCocktails[indexPath.row]
             return TableViewCellViewModel(cocktail: cocktail)
         } else {
-            let category = selectedCategories[indexPath.section].category
+            let category = sortedSelectedCategories[indexPath.section].category
             guard let selectedCategoryCocktails = selectedCocktails[category] else { return nil }
             let cocktail = selectedCategoryCocktails[indexPath.row]
             return TableViewCellViewModel(cocktail: cocktail)

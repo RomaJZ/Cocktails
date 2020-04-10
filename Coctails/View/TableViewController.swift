@@ -16,6 +16,9 @@ class TableViewController: UITableViewController {
     
     private let cellID = "cellID"
     private let filterButton = UIButton(type: .system)
+    var filterDidChanged = false
+    private var canFetchMore = true
+    var sectionIndex = 0
     
     private let tableViewModel = TableViewModel()
     var filterViewModel: FilterViewModel?
@@ -34,10 +37,14 @@ class TableViewController: UITableViewController {
         
         updateTableView()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            UIView.animate(withDuration: 1) {
-                self?.scrollToTop()
+        if filterDidChanged {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                UIView.animate(withDuration: 1) {
+                    self?.scrollToTop()
+                }
             }
+            filterDidChanged = false
+            sectionIndex = 0
         }
     }
     
@@ -56,20 +63,6 @@ class TableViewController: UITableViewController {
         }
     }
     
-    //MARK: Update TableView
-    
-    private func updateTableView() {
-        
-        if selectedCategories.isEmpty {
-            filterButton.isSelected = false
-            tableViewModel.selectedCocktails = [:]
-        } else {
-            filterButton.isSelected = true
-        }
-        tableViewModel.selectedCategories = selectedCategories
-        tableView.reloadData()
-    }
-    
     //MARK: Scroll to top
     
     private func scrollToTop() {
@@ -83,13 +76,8 @@ class TableViewController: UITableViewController {
     
     //MARK: Configure TableView
     
-    private func configureTableView() {
+    private func loadingProgress() {
         
-        view.backgroundColor = .white
-        tableView.register(TableViewCell.self, forCellReuseIdentifier: cellID)
-        tableView.rowHeight = 120
-        
-        tableViewModel.startLoadingData()
         tableViewModel.showLoading = {
             if !self.tableViewModel.isLoading {
                 self.dismissHUD(isAnimated: true)
@@ -101,6 +89,32 @@ class TableViewController: UITableViewController {
         tableViewModel.reloadData = {
             self.tableView.reloadData()
         }
+    }
+    
+    private func configureTableView() {
+        
+        view.backgroundColor = .white
+        tableView.register(TableViewCell.self, forCellReuseIdentifier: cellID)
+        tableView.rowHeight = 120
+        
+        tableViewModel.startLoadingData()
+        loadingProgress()
+    }
+    
+    //MARK: Update TableView
+    
+    private func updateTableView() {
+
+        showHUD(progressLabel: "Loading...")
+        
+        if selectedCategories.isEmpty {
+            filterButton.isSelected = false
+            tableViewModel.selectedCocktails = [:]
+        } else {
+            filterButton.isSelected = true
+        }
+        tableViewModel.selectedCategories = selectedCategories
+        loadingProgress()
     }
     
     //MARK: Configure NavigationBar
@@ -139,7 +153,7 @@ class TableViewController: UITableViewController {
         if selectedCategories.isEmpty {
             headerLabel.text = "   \(tableViewModel.categories[section].category)"
         } else {
-            headerLabel.text = "   \(tableViewModel.selectedCategories[section].category)"
+            headerLabel.text = "   \(tableViewModel.sortedSelectedCategories[section].category)"
         }
         headerLabel.font = .some(UIFont(name: "AppleSDGothicNeo-Thin", size: 20)!)
         tableView.sectionHeaderHeight = 30
@@ -167,5 +181,30 @@ class TableViewController: UITableViewController {
         
         tableViewCell.selectionStyle = .none
         return tableViewCell
+    }
+    
+    override func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        var categories: [Category] = []
+        if selectedCategories.isEmpty {
+            categories = tableViewModel.categories
+        } else {
+            categories = selectedCategories
+        }
+        
+        if sectionIndex < categories.count {
+            let offsetY = scrollView.contentOffset.y
+            let contentHeight = scrollView.contentSize.height
+            if offsetY > contentHeight - (2 * scrollView.frame.height) {
+                if canFetchMore {
+                    canFetchMore = false
+                    tableViewModel.scrollBeginFetch(from: sectionIndex)
+                    tableViewModel.reloadData = {
+                        self.tableView.reloadData()
+                        self.canFetchMore = true
+                    }
+                    sectionIndex += 1
+                }
+            }
+        }
     }
 }
